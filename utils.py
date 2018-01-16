@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard
+from sklearn.metrics import log_loss
 
 
 def get_callbacks(*callback_params):
@@ -52,7 +53,7 @@ def get_embeddings(word_index, embedding_dim=300, use_ft_embeddings=False):
     else:
         print('Using GloVe embeddings...')
         assert embedding_dim == 300
-        embedding_file = './data/word_embeddings/glove.42B.300d.txt'
+        embedding_file = './data/word_embeddings/glove.840B.300d.txt'
 
     print('Creating word embeddings from file %s' % embedding_file)
     f = open(embedding_file, encoding='utf-8')
@@ -70,16 +71,23 @@ def get_embeddings(word_index, embedding_dim=300, use_ft_embeddings=False):
     f.close()
 
     embedding_matrix = np.zeros((len(word_index) + 1, embedding_dim))
-
+    oov_count = 0
     for word, i in word_index.items():
         embedding_vector = embeddings_index.get(word)
         if embedding_vector is not None:
             embedding_matrix[i] = embedding_vector
         else:
+            oov_count += 1
             embedding_matrix[i] = np.random.normal(0, 1, embedding_dim)
-    print('Loaded embedding matrix\n')
+    print('Loaded embedding matrix')
+    print('%i (%.2f%%) oov words found in data\n' % (oov_count, 100*(oov_count/len(word_index))))
 
     return embedding_matrix
+
+
+def get_mean_log_loss(true, pred, eps=1e-15):
+    """Return log loss of input"""
+    return log_loss(true, pred, eps)
 
 
 def get_sentence(index, classes, comments):
@@ -89,6 +97,30 @@ def get_sentence(index, classes, comments):
     print(sentence_text)
     sentence_label = comments[classes].values[index]
     return sentence_text, sentence_label
+
+
+def get_toxicity_report(preds, threshold, classes):
+    """Print detected classes of toxicity in a sentence based on threshold.
+
+    Parameters:
+    -----------
+    preds : Probabilities of each type of toxicity
+    threshold : Threshold probability for when a type of toxicity is present
+    classes : List of all toxicity types
+    """
+    if sum(preds > threshold) > 0:
+        precent_classes = [classes[i] for i in range(len(classes))
+                           if preds[i] > threshold]
+        toxicity_levels = [preds[i] for i in range(len(classes))
+                           if preds[i] > threshold]
+        print('Based on a toxicity threshold of ', str(threshold), 'the sentence',
+              ' is predicted to contain toxic language of the following types;')
+        for i in range(len(precent_classes)):
+            print('\t- %s, with probability %.2f' % (precent_classes[i], toxicity_levels[i]))
+        print('\n')
+    else:
+        print('Based on a toxicity threshold of %d, the sentence is predicted \
+        to contain no toxic language!' % threshold)
 
 
 def get_train_comments():
@@ -144,22 +176,16 @@ def make_submission(model, X_test, class_list, weight_path, output_path):
     sample_submission.to_csv(output_path, index=False)
 
 
-def shuffle_data(features, labels):
+def shuffle_data(features, labels, aux=None):
     """Return features and labels in random order"""
 
     assert features.shape[0] == labels.shape[0]
     p = np.random.permutation(features.shape[0])
 
-    return features[p], labels[p]
-
-
-def shuffle_extended_data(features, aux, labels):
-    """Return features and labels in random order"""
-
-    assert features.shape[0] == labels.shape[0]
-    p = np.random.permutation(features.shape[0])
-
-    return features[p], aux[p], labels[p]
+    if aux is not None:
+        return features[p], labels[p], aux[p]
+    else:
+        return features[p], labels[p]
 
 
 def visualize_attention(attention_vector, input_text):
@@ -178,7 +204,7 @@ def visualize_attention(attention_vector, input_text):
     input_length = len(input_split)
     total_epochs = attention_vector.shape[0] - 1
 
-    f = plt.figure(figsize=(8.5, int((total_epochs + 2)/2)))
+    f = plt.figure(figsize=(8.5, int((total_epochs + 2) / 2)))
     ax = f.add_subplot(1, 1, 1)
 
     activation_map = attention_vector[1:, :]
@@ -191,11 +217,11 @@ def visualize_attention(attention_vector, input_text):
 
     ax.set_yticklabels('')
     ax.set_xticklabels('')
-    x_ticks = np.linspace(0, input_length-1, num=input_length)
+    x_ticks = np.linspace(0, input_length - 1, num=input_length)
     y_ticks = np.linspace(1, total_epochs, total_epochs)
 
     ax.set_xticks(x_ticks, minor=True)
-    ax.set_yticks(y_ticks-0.5, minor=False)
+    ax.set_yticks(y_ticks - 0.5, minor=False)
 
     ax.set_xticklabels(input_split, minor=True, rotation=90)
     ax.set_yticklabels(y_ticks, minor=False)
