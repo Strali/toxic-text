@@ -1,25 +1,30 @@
 import pandas as pd
 import fasttext
 
+from feature_engineering import Sanitize
 from preprocessing import text_normalization
 
-USE_EXTRA_COMMENTS = False
+USE_EXTRA_COMMENTS = True
 
 train = pd.read_csv('./data/train.csv')
 test = pd.read_csv('./data/test.csv')
+toxic_comments = pd.read_csv('./data/toxicity_annotated_comments.tsv', sep='\t')
+attack_comments = pd.read_csv('./data/attack_annotated_comments.tsv', sep='\t')
 
 text_normalization(train)
 text_normalization(test)
+toxic_comments = Sanitize(toxic_comments)
+attack_comments = Sanitize(attack_comments)
+
 
 if USE_EXTRA_COMMENTS:
-    extra_comments = pd.read_csv('./data/all_toxicity_comments.csv')
-    text_normalization(extra_comments)
-
     train_comments = train['comment_text'].values
     test_comments = test['comment_text'].values
-    toxicity_comments = extra_comments['comment_text'].values
+    toxic_comments = toxic_comments['comment_text'].values
+    attack_comments = attack_comments['comment_text'].values
 
-    all_text = list(train_comments) + list(test_comments) + list(toxicity_comments)
+    all_text = list(train_comments) + list(test_comments) + \
+        list(toxic_comments) + list(attack_comments)
 else:
     train_comments = train['comment_text'].values
     test_comments = test['comment_text'].values
