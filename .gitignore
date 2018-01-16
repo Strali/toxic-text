@@ -1,0 +1,8 @@
+
+__pycache__/
+
+data/
+
+submissions/
+logs/
+weights_base\.best\.hdf5
