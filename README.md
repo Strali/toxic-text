@@ -1,5 +1,6 @@
 # ToxicComments - Classification of Wikipedia comments content
 ![Alt text](figures/toxic.png "Example of attention activatioins and model predictions")
+
 This repo contains scripts for the Jigsaw Toxic Comment Classification competition hosted on Kaggle. It contains a GRU-based neural attention model for classifying comment content based on six different types of toxicity. The model is primarily implemented in Keras, using methods from sklearn for preprocessing.
 
 ## Getting started
@@ -41,4 +42,9 @@ Most hyperparameters such as learning rate, hidden units etc. are hardcoded into
 
 ## About the model
 ![Alt text](figures/model_structure.png "Example model structure with one BiGRU and one hidden layer.")
-As mentioned earlier, the model is based on a neural network architecture using an attention GRU. Input embeddings are fed into a (poissibly stacked) bidirectional GRU unit with tanh-activation, after which they are passed to an attention layer whose task it is to learn which parts of the inputs the model should focus on. Attention outputs are then max pooled globaly and the result passed to a (possibly number of) dense layers, until a sigmoid output layer gives the final class predictions. The dense layer nonlinearity is ELU rather than ReLU, after it was seen that these performed better empirically. Inbetween most layers of the model, (spatial) dropout with a probability 0.4 is performed, together with batch normalization. The high dropout rate helps alleviate overfitting, which otherwise tends to occurr rather quickly, especially if the model is made more complex through the use of additional layers.
+
+As mentioned earlier, the model is based on a neural network architecture using an attention GRU. Input embeddings are fed into a (poissibly stacked) bidirectional GRU unit with tanh-activation, after which they are passed to an attention layer whose task it is to learn which parts of the inputs the model should focus on.
+
+Attention outputs are then max pooled globaly and the result passed to a (possibly number of) dense layers, until a sigmoid output layer gives the final class predictions. The dense layer nonlinearity is ELU rather than ReLU, after it was seen that these performed better empirically. 
+
+Inbetween most layers of the model, (spatial) dropout with a probability 0.4 is performed, together with batch normalization. The high dropout rate helps alleviate overfitting, which otherwise tends to occurr rather quickly, especially if the model is made more complex through the use of additional layers.
