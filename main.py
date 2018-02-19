@@ -4,7 +4,7 @@ TODO: Add docstrings
 import argparse
 import datetime
 
-from preprocessing import TextPreprocessor
+from preprocessing.preprocessing import TextPreprocessor
 from toxic_classifier import ToxicClassifier
 from utils import get_callbacks, get_toxicity_classes
 from utils import make_aux_submission, make_submission
@@ -33,6 +33,7 @@ def main(args):
     --fasttext (-f) : Use word embeddings trained using fasttext instead of
         pre-trained GloVe embeddings.
     """
+
     TRAIN = args.train
     USE_AUXILLIARY_INPUT = args.auxilliary_input
     COMBINE_DATA = args.combine_data
@@ -54,6 +55,10 @@ def main(args):
 
     AVERAGE_ATTENTION = False
 
+    BASE_LR = 0.0001
+    MAX_LR = 0.005
+    STEP_SIZE = 30000
+    CLR_MODE = 'triangular'
     now = datetime.datetime.now()
     now = now.strftime('%Y%m%d%H%M')
     LOG_PATH = './logs/' + now
@@ -63,6 +68,8 @@ def main(args):
     TB_HIST_FREQ = 0
     TB_WRITE_GRAPH = True
 
+    clr_params = {'base_lr': BASE_LR, 'max_lr': MAX_LR, 'step_size': STEP_SIZE,
+                  'mode': CLR_MODE}
     ckpt_params = {'filepath': WEIGHT_SAVE_PATH, 'verbose': 1,
                    'save_best_only': True, 'save_weights_only': True}
     es_params = {'patience': ES_PATIENCE}
@@ -70,7 +77,7 @@ def main(args):
                  'write_graph': TB_WRITE_GRAPH, 'batch_size': BATCH_SIZE,
                  'embeddings_freq': MAX_EPOCHS + 1}
 
-    callbacks = get_callbacks(ckpt_params, es_params, tb_params)
+    callbacks = get_callbacks(clr_params, ckpt_params, es_params, tb_params)
 
     CLASS_LIST = ['toxic', 'severe_toxic', 'obscene', 'threat', 'insult', 'identity_hate']
 

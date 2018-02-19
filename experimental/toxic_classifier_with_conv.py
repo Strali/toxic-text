@@ -15,7 +15,10 @@ from utils import shuffle_data
 
 
 class ToxicClassifier(object):
-    """Class for classifying the toxicity of a sentence.
+    """Model class for classifying the toxicity of a sentence. Basic model
+        structure is a stack of tanh-activated GRUs and attention layers,
+        followed by global max pooling and number of dense layers. Lastly comes
+        a final output layer with sigmoid activations for class probabilities.
 
     Parameters
     ----------
@@ -161,11 +164,12 @@ class ToxicClassifier(object):
             layer output.
 
         """
-
-        gru_units = [96]
+        # conv_filters_1 = 64
+        # conv_filters_2 = 128
+        gru_units = [96, 96, 96]
         dense_units = [64]
 
-        dropout_prob = 0.4
+        dropout_prob = 0.3
 
         model_input = Input(shape=(self.num_timesteps, ), name='model_input')
         embedding_matrix = get_embeddings(word_index=word_index,
@@ -177,6 +181,21 @@ class ToxicClassifier(object):
                       weights=[embedding_matrix],
                       input_length=self.num_timesteps,
                       trainable=False)(model_input)
+        '''
+        x = Conv1D(filters=conv_filters_1,
+                   kernel_size=3,
+                   padding='same',
+                   activation='elu')(x)
+        x = BatchNormalization()(x)
+        x = SpatialDropout1D(0.3)(x)
+
+        x = Conv1D(filters=conv_filters_2,
+                   kernel_size=3,
+                   padding='same',
+                   activation='elu')(x)
+        x = BatchNormalization()(x)
+        x = SpatialDropout1D(0.3)(x)
+        '''
 
         for n in range(len(gru_units)):
             x = SpatialDropout1D(dropout_prob)(x)

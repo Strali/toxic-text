@@ -144,6 +144,14 @@ class CyclicLR(Callback):
 
 
 class RocAucEvaluation(Callback):
+    """Evaluate ROC AUC on validation data at epoch end.
+
+    Parameters
+    ----------
+    interval : Number of epochs between ROC evaluations, default 1.
+
+    """
+
     def __init__(self, interval=1):
         super(Callback, self).__init__()
         self.interval = interval
@@ -170,6 +178,15 @@ class RocAucEvaluation(Callback):
 
 
 class TrainValTensorBoard(TensorBoard):
+    """Enhance Tensorboard callback to display training and validation
+        metrics on a single graph for easy comparison.
+
+    Parameters
+    ----------
+    log_dir : String specifying base path to log directory.
+    **kwargs : Keyword arguments to TensorBoard callback.
+    """
+
     def __init__(self, log_dir='./logs', **kwargs):
         # Make the original `TensorBoard` log to a subdirectory 'training'
         training_log_dir = log_dir + '/training'
@@ -209,7 +226,7 @@ class TrainValTensorBoard(TensorBoard):
 def get_callbacks(*callback_params):
     """Return a list of Keras callbacks.
     NOTE: Assumes callback parameters are given in the order
-        "ModelCheckpoint", "EarlyStopping", "TensorBoard".
+        "CyclicLR", "ModelCheckpoint", "EarlyStopping", "TensorBoard".
     """
 
     callback_list = []
@@ -217,13 +234,13 @@ def get_callbacks(*callback_params):
     CLR_callback = CyclicLR(base_lr=0.0001, max_lr=0.005, step_size=30000,
                             mode='triangular')
     callback_list.append(CLR_callback)
-    CP_callback = ModelCheckpoint(**callback_params[0])
+    CP_callback = ModelCheckpoint(**callback_params[1])
     callback_list.append(CP_callback)
-    ES_callback = EarlyStopping(**callback_params[1])
+    ES_callback = EarlyStopping(**callback_params[2])
     callback_list.append(ES_callback)
 
     if len(callback_params) == 3:
-        TB_callback = TrainValTensorBoard(**callback_params[2])
+        TB_callback = TrainValTensorBoard(**callback_params[3])
         callback_list.append(TB_callback)
 
     ROC_callback = RocAucEvaluation(interval=1)

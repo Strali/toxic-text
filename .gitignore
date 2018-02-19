@@ -2,7 +2,10 @@
 __pycache__/
 
 data/
-
-submissions/
+figures/horizontal_cbar.png
+figures/obscene.*png
+legacy_models/
 logs/
+submissions/
+
 weights_base\.best\.hdf5
