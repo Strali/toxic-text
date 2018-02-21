@@ -6,9 +6,9 @@ import datetime
 
 from preprocessing.preprocessing import TextPreprocessor
 from toxic_classifier import ToxicClassifier
-from utils import get_callbacks, get_toxicity_classes
+from utils import get_callbacks
 from utils import make_aux_submission, make_submission
-from utils import print_toxicity_report, visualise_attention, visualise_attention_with_text
+from utils import print_toxicity_report
 
 
 def main(args):
@@ -47,7 +47,7 @@ def main(args):
     SKIPGRAM = True
 
     MAX_EPOCHS = 50
-    BATCH_SIZE = 512
+    BATCH_SIZE = 256
     VAL_SPLIT = 0.2
     SENTENCE_NUM = 51
 
@@ -64,7 +64,7 @@ def main(args):
     LOG_PATH = './logs/' + now
     WEIGHT_SAVE_PATH = 'weights_base.best.hdf5'
     SUBMISSION_SAVE_PATH = './submissions/submission_' + now + '.csv'
-    ES_PATIENCE = 6
+    ES_PATIENCE = 10
     TB_HIST_FREQ = 0
     TB_WRITE_GRAPH = True
 
@@ -129,22 +129,9 @@ def main(args):
         print('Original sentence: ', sample_text)
         print('Actual label: ', sample_target)
         print('Model prediction :', sample_pred[0, :])
-        present_toxicity = get_toxicity_classes(sample_pred[0, :],
-                                                TOXICITY_THRESHOLD,
-                                                CLASS_LIST)
         print_toxicity_report(sample_pred[0, :],
                               TOXICITY_THRESHOLD,
                               CLASS_LIST)
-
-        if VISUALISE_FULL_ATTENTION:
-            visualise_attention(tc.attention_history, sample_text)
-        else:
-            attention = tc.get_attention_output()
-            attention /= sum(attention)  # Normalise to percentage
-            label = tc.get_sample_labels()
-            visualise_attention_with_text(attention, sample_text,
-                                          sample_pred[0, :], present_toxicity,
-                                          sample_target, label)
 
     if MAKE_SUBMISSION:
         print('Loading best weights and predicting on test data\n')

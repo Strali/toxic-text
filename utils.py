@@ -231,17 +231,17 @@ def get_callbacks(*callback_params):
 
     callback_list = []
 
-    CLR_callback = CyclicLR(base_lr=0.0001, max_lr=0.005, step_size=30000,
-                            mode='triangular')
+    CLR_callback = CyclicLR(**callback_params[0])
+    # CLR_callback = CyclicLR(base_lr=0.0001, max_lr=0.005, step_size=30000,
+    #         mode='triangular')
     callback_list.append(CLR_callback)
     CP_callback = ModelCheckpoint(**callback_params[1])
     callback_list.append(CP_callback)
     ES_callback = EarlyStopping(**callback_params[2])
     callback_list.append(ES_callback)
 
-    if len(callback_params) == 3:
-        TB_callback = TrainValTensorBoard(**callback_params[3])
-        callback_list.append(TB_callback)
+    TB_callback = TrainValTensorBoard(**callback_params[3])
+    callback_list.append(TB_callback)
 
     ROC_callback = RocAucEvaluation(interval=1)
     callback_list.append(ROC_callback)
@@ -276,7 +276,7 @@ def get_embeddings(word_index, embedding_dim=300,
     if use_ft_embeddings:
         if use_skipgram:
             print('Using fasttext skipgram embeddings...')
-            embedding_file = './data/word_embeddings/ft_skipgram_300d.txt'
+            embedding_file = './data/word_embeddings/fasttext-300d-2M.txt'
         else:
             print('Using fasttext cbow embeddings...')
             embedding_file = './data/word_embeddings/ft_cbow_300d.txt'

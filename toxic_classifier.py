@@ -5,11 +5,11 @@ import numpy as np
 import keras.backend as K
 from keras.models import Model
 from keras.layers import concatenate, multiply
-from keras.layers import BatchNormalization, Dropout, SpatialDropout1D
-from keras.layers import GlobalMaxPool1D
+from keras.layers import Dropout, SpatialDropout1D
 from keras.layers import Activation, Lambda, Permute, Reshape, RepeatVector, TimeDistributed
 from keras.layers import Bidirectional, CuDNNGRU, Dense, Embedding, Input
 
+from attention_weighted_average_layer import AttentionWeightedAverage
 from utils import get_embeddings
 from utils import shuffle_data
 
@@ -162,8 +162,8 @@ class ToxicClassifier(object):
 
         """
 
-        gru_units = [96]
-        dense_units = [64]
+        gru_units = [50, 50]
+        dense_units = [50]
 
         dropout_prob = 0.4
 
@@ -182,12 +182,14 @@ class ToxicClassifier(object):
             x = SpatialDropout1D(dropout_prob)(x)
             x = Bidirectional(CuDNNGRU(units=gru_units[n],
                                        return_sequences=True))(x)
-            x = BatchNormalization()(x)
+
             x = TimeDistributed(Activation('tanh'))(x)
 
         x = SpatialDropout1D(dropout_prob)(x)
-        attention = self._attention_3d_block(inputs=x)
-        dense_input = GlobalMaxPool1D()(attention)
+
+        dense_input = AttentionWeightedAverage(return_attention=False)(x)
+        # attention, attention_weights = AttentionWeightedAverage(return_attention=False)(x)
+        # dense_input = concatenate([attention, attention_weights])
 
         if self.use_aux_input:
             aux_input = Input(shape=(3, ), name='aux_input')
@@ -196,7 +198,6 @@ class ToxicClassifier(object):
         for n in range(len(dense_units)):
             dense = Dropout(dropout_prob)(dense_input)
             dense = Dense(dense_units[n], activation=None)(dense)
-            dense = BatchNormalization()(dense)
             dense = Activation('elu')(dense)
 
         dense = Dropout(dropout_prob)(dense)
@@ -210,10 +211,6 @@ class ToxicClassifier(object):
         self.model.compile(loss='binary_crossentropy',
                            optimizer='rmsprop',
                            metrics=['accuracy'])
-        print(self.last_attention_layer_name)
-        self.attention_layer_model = Model(inputs=self.model.input,
-                                           outputs=self.model.get_layer(
-                                               self.last_attention_layer_name).output)
 
     def load_best_weights(self):
         """Load best weights into model."""
@@ -243,9 +240,7 @@ class ToxicClassifier(object):
                                    initial_epoch=epoch,
                                    validation_split=val_split,
                                    callbacks=callbacks)
-                    attention_output = self.attention_layer_model.predict(
-                        [self.sample_sequence.reshape(1, self.num_timesteps),
-                         self.sample_aux.reshape(1, 3)], batch_size=1)
+
                 else:
                     self.model.fit(_X_train, _y_train,
                                    batch_size=batch_size,
@@ -253,24 +248,19 @@ class ToxicClassifier(object):
                                    initial_epoch=epoch,
                                    validation_split=val_split,
                                    callbacks=callbacks)
-                    attention_output = self.get_attention_output
 
-                self.attention_history = np.append(
-                    self.attention_history,
-                    [attention_output[0, -self.sample_length:, 0]],
-                    axis=0)
         else:
             if self.use_aux_input:
                 self.model.fit([_X_train, _X_aux], _y_train,
                                batch_size=batch_size,
                                epochs=max_epochs,
-                               validation_split=0.15,
+                               validation_split=val_split,
                                callbacks=callbacks)
             else:
                 self.model.fit(_X_train, _y_train,
                                batch_size=batch_size,
                                epochs=max_epochs,
-                               validation_split=0.1,
+                               validation_split=val_split,
                                callbacks=callbacks)
         print('Training done\n')
 
