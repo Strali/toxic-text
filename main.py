@@ -46,8 +46,8 @@ def main(args):
     EMBEDDING_DIM = 300
     SKIPGRAM = True
 
-    MAX_EPOCHS = 50
-    BATCH_SIZE = 256
+    MAX_EPOCHS = 75
+    BATCH_SIZE = 512
     VAL_SPLIT = 0.2
     SENTENCE_NUM = 51
 

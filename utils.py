@@ -1,3 +1,5 @@
+import os.path
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -250,7 +252,8 @@ def get_callbacks(*callback_params):
 
 
 def get_embeddings(word_index, embedding_dim=300,
-                   use_ft_embeddings=False, use_skipgram=True):
+                   use_ft_embeddings=False, use_skipgram=True,
+                   save_embeddings=True):
     """
     Return pre-trained word embeddings for words in the input corpus. OOV
     words will be encoded using a N(0, 1) random distribution.
@@ -271,47 +274,60 @@ def get_embeddings(word_index, embedding_dim=300,
     embedding_matrix : A (num_words + 1, embedding_dim) matrix of word embeddings
 
     """
-
-    embeddings_index = {}
     if use_ft_embeddings:
-        if use_skipgram:
-            print('Using fasttext skipgram embeddings...')
-            embedding_file = './data/word_embeddings/fasttext-300d-2M.txt'
-        else:
-            print('Using fasttext cbow embeddings...')
-            embedding_file = './data/word_embeddings/ft_cbow_300d.txt'
+        embedding_file_name = 'data/ft_embeddings_matrix'
     else:
-        print('Using GloVe embeddings...')
-        assert embedding_dim == 300
-        embedding_file = './data/word_embeddings/glove.840B.300d.txt'
+        embedding_file_name = 'data/glove_embedding_matrix'
 
-    print('Creating word embeddings from file %s' % embedding_file)
-    f = open(embedding_file, encoding='utf-8')
-
-    n = 1
-    for line in tqdm(f):
-        try:
-            values = line.split()
-            word = values[0]
-            coefs = np.asarray(values[1:], dtype='float32')
-            embeddings_index[word] = coefs
-        except ValueError as e:
-            print('Error on line', n, ': ', e)
-        n += 1
-    f.close()
-
-    embedding_matrix = np.zeros((len(word_index) + 1, embedding_dim))
-    oov_count = 0
-    for word, i in word_index.items():
-        embedding_vector = embeddings_index.get(word)
-        if embedding_vector is not None:
-            embedding_matrix[i] = embedding_vector
+    if os.path.isfile(embedding_file_name + '.npy'):
+        print('Found preexisting embedding matrix {}, loading...'.format(embedding_file_name))
+        embedding_matrix = np.load(file=embedding_file_name + '.npy')
+        print('Embedding matrix loaded successfully!\n')
+    else:
+        embeddings_index = {}
+        if use_ft_embeddings:
+            if use_skipgram:
+                print('Using fasttext skipgram embeddings...')
+                embedding_file = './data/word_embeddings/fasttext-300d-2M.txt'
+            else:
+                print('Using fasttext cbow embeddings...')
+                embedding_file = './data/word_embeddings/ft_cbow_300d.txt'
         else:
-            oov_count += 1
-            embedding_matrix[i] = np.random.normal(0, 1, embedding_dim)
-    print('Loaded embedding matrix')
-    print('%i (%.2f%%) oov words found in data\n' %
-          (oov_count, 100 * (oov_count / len(word_index))))
+            print('Using GloVe embeddings...')
+            assert embedding_dim == 300
+            embedding_file = './data/word_embeddings/glove.840B.300d.txt'
+
+        print('Creating word embeddings from file %s' % embedding_file)
+        f = open(embedding_file, encoding='utf-8')
+
+        n = 1
+        for line in tqdm(f):
+            try:
+                values = line.split()
+                word = values[0]
+                coefs = np.asarray(values[1:], dtype='float32')
+                embeddings_index[word] = coefs
+            except ValueError as e:
+                print('Error on line', n, ': ', e)
+            n += 1
+        f.close()
+
+        embedding_matrix = np.zeros((len(word_index) + 1, embedding_dim))
+        oov_count = 0
+        for word, i in word_index.items():
+            embedding_vector = embeddings_index.get(word)
+            if embedding_vector is not None:
+                embedding_matrix[i] = embedding_vector
+            else:
+                oov_count += 1
+                embedding_matrix[i] = np.random.normal(0, 1, embedding_dim)
+        print('Loaded embedding matrix')
+        print('%i (%.2f%%) oov words found in data\n' %
+              (oov_count, 100 * (oov_count / len(word_index))))
+
+        if save_embeddings:
+            print('Saving loaded embeddings to {}'.format(embedding_file_name + '.npz'))
+            np.save(file=embedding_file_name + '.npy', arr=embedding_matrix)
 
     return embedding_matrix
 

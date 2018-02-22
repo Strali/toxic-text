@@ -162,8 +162,8 @@ class ToxicClassifier(object):
 
         """
 
-        gru_units = [50, 50]
-        dense_units = [50]
+        gru_units = [50]
+        dense_units = [64]
 
         dropout_prob = 0.4
 
